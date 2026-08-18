@@ -1,64 +1,178 @@
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("Sistema iniciado com sucesso!");
+  const el = {
+    prompt: document.getElementById('prompt'),
+    btnGerar: document.getElementById('btnGerar'),
+    btnGerarLabel: document.getElementById('btnGerarLabel'),
+    spinner: document.getElementById('spinner'),
+    status: document.getElementById('status'),
+    historyList: document.getElementById('historyList'),
+    apiStatus: document.getElementById('apiStatus'),
+    previewFrame: document.getElementById('previewFrame'),
+    codeViewText: document.getElementById('codeViewText'),
+    codeView: document.getElementById('codeView'),
+    emptyState: document.getElementById('emptyState'),
+    btnCopiar: document.getElementById('btnCopiar'),
+    btnBaixar: document.getElementById('btnBaixar'),
+    examples: document.getElementById('examples'),
+    tabs: document.querySelectorAll('.tab'),
+    devices: document.querySelectorAll('.device'),
+    frameWrap: document.getElementById('frameWrap')
+  };
 
-  // Tenta encontrar os elementos pelo ID ou pega os primeiros que achar
-  const btnGerar = document.getElementById('generate-btn') || document.querySelector('button');
-  const promptInput = document.getElementById('prompt-input') || document.querySelector('textarea, input[type="text"]');
-  const statusMsg = document.getElementById('status-message') || document.createElement('div');
-  const previewFrame = document.getElementById('preview-frame') || document.querySelector('iframe');
+  let state = {
+    codigoAtual: '',
+    historico: []
+  };
 
-  if (!btnGerar) {
-    alert("Erro crítico: Nenhum botão foi encontrado na sua página HTML!");
-    return;
+  // Verifica o servidor ao carregar
+  fetch('/api/health')
+    .then(res => res.json())
+    .then(data => {
+      if (el.apiStatus) el.apiStatus.textContent = 'servidor online';
+    })
+    .catch(() => {
+      if (el.apiStatus) el.apiStatus.textContent = 'erro no servidor';
+    });
+
+  // Clica nos exemplos prontos
+  if (el.examples) {
+    el.examples.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (chip && el.prompt) {
+        el.prompt.value = chip.getAttribute('data-example');
+      }
+    });
   }
 
-  btnGerar.addEventListener('click', async () => {
-    const prompt = promptInput ? promptInput.value.trim() : "";
-    
-    if (!prompt) {
-      alert("Por favor, digite alguma instrução na caixa de texto.");
-      return;
-    }
-
-    const textoOriginal = btnGerar.innerText;
-    btnGerar.disabled = true;
-    btnGerar.innerText = "Gerando...";
-    
-    if (statusMsg) statusMsg.innerText = "A Inteligência Artificial está criando seu app...";
-
-    try {
-      const response = await fetch('/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        if (statusMsg) statusMsg.innerText = "Pronto! Aplicativo gerado com sucesso.";
-        
-        if (previewFrame) {
-          const blob = new Blob([data.code], { type: 'text/html' });
-          previewFrame.src = URL.createObjectURL(blob);
-        } else {
-          // Se não achar o iframe, baixa o arquivo direto para você ver
-          const blob = new Blob([data.code], { type: 'text/html' });
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = 'meu-aplicativo.html';
-          a.click();
-        }
-      } else {
-        throw new Error(data.error || "Erro ao gerar código");
+  // Botão principal de gerar
+  if (el.btnGerar) {
+    el.btnGerar.addEventListener('click', async () => {
+      const promptText = el.prompt ? el.prompt.value.trim() : '';
+      if (!promptText) {
+        alert('Por favor, descreva o aplicativo que você quer criar.');
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      if (statusMsg) statusMsg.innerText = "Erro: " + err.message;
-      alert("Erro ao gerar: " + err.message);
-    } finally {
-      btnGerar.disabled = false;
-      btnGerar.innerText = textoOriginal;
-    }
-  });
+
+      setLoading(true);
+
+      try {
+        const response = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: promptText, history: state.historico })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erro ao gerar aplicativo');
+
+        state.codigoAtual = data.code;
+
+        // Atualiza a pré-via
+        const blob = new Blob([data.code], { type: 'text/html' });
+        if (el.previewFrame) {
+          el.previewFrame.hidden = false;
+          el.previewFrame.src = URL.createObjectURL(blob);
+        }
+        if (el.codeViewText) el.codeViewText.textContent = data.code;
+
+        // Mostra a tela e libera os botões de copiar/baixar
+        if (el.emptyState) el.emptyState.hidden = true;
+        if (el.btnCopiar) el.btnCopiar.disabled = false;
+        if (el.btnBaixar) el.btnBaixar.disabled = false;
+
+        // Salva histórico
+        state.historico.push({ prompt: promptText, code: data.code });
+        renderHistory();
+
+        if (el.status) el.status.textContent = 'Aplicativo gerado com sucesso!';
+      } catch (err) {
+        console.error(err);
+        if (el.status) el.status.textContent = 'Erro: ' + err.message;
+      } finally {
+        setLoading(false);
+      }
+    });
+  }
+
+  function setLoading(loading) {
+    if (el.btnGerar) el.btnGerar.disabled = loading;
+    if (el.spinner) el.spinner.hidden = !loading;
+    if (el.btnGerarLabel) el.btnGerarLabel.textContent = loading ? 'Gerando...' : 'Gerar aplicativo';
+    if (loading && el.status) el.status.textContent = 'A Inteligência Artificial está montando o app...';
+  }
+
+  function renderHistory() {
+    if (!el.historyList) return;
+    el.historyList.innerHTML = '';
+    state.historico.forEach((item) => {
+      const li = document.createElement('li');
+      li.textContent = item.prompt;
+      li.addEventListener('click', () => {
+        state.codigoAtual = item.code;
+        const blob = new Blob([item.code], { type: 'text/html' });
+        if (el.previewFrame) {
+          el.previewFrame.hidden = false;
+          el.previewFrame.src = URL.createObjectURL(blob);
+        }
+        if (el.codeViewText) el.codeViewText.textContent = item.code;
+        if (el.emptyState) el.emptyState.hidden = true;
+        if (el.btnCopiar) el.btnCopiar.disabled = false;
+        if (el.btnBaixar) el.btnBaixar.disabled = false;
+      });
+      el.historyList.appendChild(li);
+    });
+  }
+
+  // Copiar código
+  if (el.btnCopiar) {
+    el.btnCopiar.addEventListener('click', async () => {
+      if (!state.codigoAtual) return;
+      await navigator.clipboard.writeText(state.codigoAtual);
+      const original = el.btnCopiar.textContent;
+      el.btnCopiar.textContent = 'Copiado!';
+      setTimeout(() => (el.btnCopiar.textContent = original), 1500);
+    });
+  }
+
+  // Baixar arquivo HTML
+  if (el.btnBaixar) {
+    el.btnBaixar.addEventListener('click', () => {
+      if (!state.codigoAtual) return;
+      const blob = new Blob([state.codigoAtual], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'meu-aplicativo.html';
+      a.click();
+    });
+  }
+
+  // Alternar entre abas Prévia e Código
+  if (el.tabs) {
+    el.tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        el.tabs.forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+        const view = tab.getAttribute('data-view');
+        if (view === 'preview') {
+          if (el.previewFrame) el.previewFrame.hidden = false;
+          if (el.codeView) el.codeView.hidden = true;
+        } else {
+          if (el.previewFrame) el.previewFrame.hidden = true;
+          if (el.codeView) el.codeView.hidden = false;
+        }
+      });
+    });
+  }
+
+  // Ajustar tamanho do dispositivo simulado
+  if (el.devices) {
+    el.devices.forEach(dev => {
+      dev.addEventListener('click', () => {
+        el.devices.forEach(d => d.classList.remove('is-active'));
+        dev.classList.add('is-active');
+        const w = dev.getAttribute('data-width');
+        if (el.frameWrap) el.frameWrap.style.width = w;
+      });
+    });
+  }
 });
