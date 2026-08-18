@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Oficina — Criador de Aplicativos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ===================== COLUNA ESQUERDA: OFICINA ===================== -->
+  <aside class="bench">
+    <header class="bench__brand">
+      <div class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 L21 7 L21 17 L12 22 L3 17 L3 7 Z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M12 2 L12 22 M3 7 L21 17 M21 7 L3 17" stroke="currentColor" stroke-width="0.7" opacity="0.5"/></svg>
+      </div>
+      <div>
+        <p class="brand__title">Oficina</p>
+        <p class="brand__subtitle">criador de aplicativos · 1 rodada</p>
+      </div>
+    </header>
+
+    <div class="bench__field">
+      <label for="prompt" class="field__label">O que você quer construir?</label>
+      <textarea id="prompt" rows="7" placeholder="Ex: um app de checklist de viagem com categorias, progresso e botão de limpar tudo"></textarea>
+      <p class="field__hint" id="modeHint">Descreva com detalhes — quanto mais claro o pedido, melhor sai de primeira.</p>
+    </div>
+
+    <div class="bench__examples" id="examples">
+      <button class="chip" data-example="Um app de metas financeiras: usuário cadastra uma meta, um valor alvo e vê uma barra de progresso ao registrar depósitos.">Metas financeiras</button>
+      <button class="chip" data-example="Um cronômetro Pomodoro com ciclos de foco e pausa, contador de ciclos completos e alerta sonoro simples via beep do navegador.">Pomodoro</button>
+      <button class="chip" data-example="Uma calculadora de dose de café: usuário informa gramas de café e o app calcula a água ideal para 3 métodos (V60, prensa francesa, aeropress).">Calculadora de café</button>
+      <button class="chip" data-example="Um gerador de citações motivacionais em cartões estilizados, com botão de nova citação e botão de copiar o texto.">Gerador de citações</button>
+    </div>
+
+    <button id="btnGerar" class="btn-primary">
+      <span id="btnGerarLabel">Gerar aplicativo</span>
+      <span class="spinner" id="spinner" hidden></span>
+    </button>
+
+    <div class="bench__status" id="status" role="status" aria-live="polite"></div>
+
+    <div class="bench__history">
+      <p class="history__label">Histórico desta sessão</p>
+      <ul id="historyList" class="history__list"></ul>
+    </div>
+
+    <footer class="bench__footer">
+      <span id="apiStatus">verificando servidor…</span>
+    </footer>
+  </aside>
+
+  <!-- ===================== COLUNA DIREITA: BANCADA DE PREVIEW ===================== -->
+  <main class="stage">
+    <div class="stage__bar">
+      <div class="stage__tabs">
+        <button class="tab is-active" data-view="preview">Prévia</button>
+        <button class="tab" data-view="code">Código</button>
+      </div>
+
+      <div class="stage__devices" id="devices">
+        <button class="device is-active" data-width="100%" title="Tela cheia">
+          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="2" y="4" width="20" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button class="device" data-width="768px" title="Tablet">
+          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="4" y="2" width="16" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button class="device" data-width="375px" title="Celular">
+          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="6" y="2" width="12" height="20" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+      </div>
+
+      <div class="stage__actions">
+        <button id="btnCopiar" class="btn-ghost" disabled>Copiar código</button>
+        <button id="btnBaixar" class="btn-ghost" disabled>Baixar .html</button>
+      </div>
+    </div>
+
+    <div class="stage__viewport">
+      <div class="frame-wrap" id="frameWrap">
+        <iframe id="previewFrame" title="Prévia do aplicativo gerado"></iframe>
+      </div>
+      <pre id="codeView" class="code-view" hidden><code id="codeViewText"></code></pre>
+
+      <div class="empty-state" id="emptyState">
+        <p>Nenhum aplicativo gerado ainda.</p>
+        <p class="empty-state__sub">Escreva o que você quer na coluna ao lado e clique em “Gerar aplicativo”.</p>
+      </div>
+    </div>
+
+    <div class="stage__refine" id="refineBar" hidden>
+      <input id="refineInput" type="text" placeholder="Peça um ajuste no app gerado (ex: deixar o botão maior, mudar a cor para azul)…" />
+      <button id="btnRefinar" class="btn-secondary">Ajustar</button>
+    </div>
+  </main>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
