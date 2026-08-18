@@ -1,24 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const btnGerar = document.getElementById('generate-btn');
-  const promptInput = document.getElementById('prompt-input');
-  const statusMsg = document.getElementById('status-message');
-  const previewFrame = document.getElementById('preview-frame');
+  console.log("Sistema iniciado com sucesso!");
+
+  // Tenta encontrar os elementos pelo ID ou pega os primeiros que achar
+  const btnGerar = document.getElementById('generate-btn') || document.querySelector('button');
+  const promptInput = document.getElementById('prompt-input') || document.querySelector('textarea, input[type="text"]');
+  const statusMsg = document.getElementById('status-message') || document.createElement('div');
+  const previewFrame = document.getElementById('preview-frame') || document.querySelector('iframe');
 
   if (!btnGerar) {
-    console.error("Botão de gerar não encontrado na página!");
+    alert("Erro crítico: Nenhum botão foi encontrado na sua página HTML!");
     return;
   }
 
   btnGerar.addEventListener('click', async () => {
-    const prompt = promptInput.value.trim();
+    const prompt = promptInput ? promptInput.value.trim() : "";
+    
     if (!prompt) {
-      alert("Por favor, digite algo primeiro.");
+      alert("Por favor, digite alguma instrução na caixa de texto.");
       return;
     }
 
+    const textoOriginal = btnGerar.innerText;
     btnGerar.disabled = true;
     btnGerar.innerText = "Gerando...";
-    statusMsg.innerText = "Aguardando resposta do Gemini...";
+    
+    if (statusMsg) statusMsg.innerText = "A Inteligência Artificial está criando seu app...";
 
     try {
       const response = await fetch('/generate', {
@@ -30,18 +36,29 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
 
       if (response.ok) {
-        statusMsg.innerText = "Sucesso! Aplicativo gerado.";
-        const blob = new Blob([data.code], { type: 'text/html' });
-        previewFrame.src = URL.createObjectURL(blob);
+        if (statusMsg) statusMsg.innerText = "Pronto! Aplicativo gerado com sucesso.";
+        
+        if (previewFrame) {
+          const blob = new Blob([data.code], { type: 'text/html' });
+          previewFrame.src = URL.createObjectURL(blob);
+        } else {
+          // Se não achar o iframe, baixa o arquivo direto para você ver
+          const blob = new Blob([data.code], { type: 'text/html' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'meu-aplicativo.html';
+          a.click();
+        }
       } else {
-        throw new Error(data.error || "Erro desconhecido");
+        throw new Error(data.error || "Erro ao gerar código");
       }
     } catch (err) {
       console.error(err);
-      statusMsg.innerText = "Erro: " + err.message;
+      if (statusMsg) statusMsg.innerText = "Erro: " + err.message;
+      alert("Erro ao gerar: " + err.message);
     } finally {
       btnGerar.disabled = false;
-      btnGerar.innerText = "Gerar aplicativo";
+      btnGerar.innerText = textoOriginal;
     }
   });
 });
