@@ -350,3 +350,6 @@ body{
   .bench{border-right:none;border-bottom:1px solid var(--line);max-height:60vh;}
   .stage{min-height:60vh;}
 }
+[hidden] {
+  display: none !important;
+}
