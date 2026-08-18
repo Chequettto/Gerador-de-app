@@ -1,82 +1,34 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-
-const API_KEYS = [
-  process.env.GEMINI_API_KEY_1,
-  process.env.GEMINI_API_KEY_2,
-  process.env.GEMINI_API_KEY_3,
-  process.env.GEMINI_API_KEY_4,
-  process.env.GEMINI_API_KEY_5,
-  process.env.GEMINI_API_KEY_6,
-].filter(Boolean);
-
-if (API_KEYS.length === 0) {
-  throw new Error("Nenhuma chave GEMINI_API_KEY foi configurada.");
+function getApiKeys() {
+  const keys = [];
+  for (let i = 1; i <= 10; i++) {
+    const key = process.env[`GEMINI_API_KEY_${i}`];
+    if (key) keys.push(key);
+  }
+  return keys;
 }
 
-let currentKeyIndex = 0;
+async function gerarComGemini(prompt, history = []) {
+  const keys = getApiKeys();
+  if (keys.length === 0) {
+    throw new Error('Nenhuma chave de API configurada.');
+  }
 
-function getClient() {
-  return new GoogleGenerativeAI(API_KEYS[currentKeyIndex]);
-}
-
-function isQuotaError(error) {
-  const message = String(error?.message || error || "").toLowerCase();
-
-  return (
-    message.includes("quota") ||
-    message.includes("rate limit") ||
-    message.includes("resource exhausted") ||
-    message.includes("too many requests") ||
-    message.includes("429")
-  );
-}
-
-function nextKey() {
-  currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
-
-  console.log(
-    `Gemini: mudando para a chave ${currentKeyIndex + 1}/${API_KEYS.length}`
-  );
-}
-
-export async function generateText(prompt) {
-  let attempts = 0;
-
-  while (attempts < API_KEYS.length) {
+  for (const key of keys) {
     try {
-      const client = getClient();
-
-      const model = client.getGenerativeModel({
-        model: MODEL,
-      });
+      const genAI = new GoogleGenerativeAI(key);
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
       const result = await model.generateContent(prompt);
-
-      return result.response.text();
-
-    } catch (error) {
-      console.error(
-        `Erro usando chave ${currentKeyIndex + 1}:`,
-        error?.message || error
-      );
-
-      if (!isQuotaError(error)) {
-        throw error;
-      }
-
-      nextKey();
-      attempts++;
+      const response = await result.response;
+      return response.text();
+    } catch (err) {
+      console.warn('Erro com uma das chaves, tentando a próxima...', err.message);
     }
   }
 
-  throw new Error(
-    "Todas as chaves Gemini atingiram o limite ou estão indisponíveis."
-  );
+  throw new Error('Todas as chaves de API falharam ao processar a requisição.');
 }
-```[cite: 4]
 
-3. Depois de colar, clique no botão verde no canto superior direito: **`Commit changes...`**.
-
-Me avise assim que salvar!
+module.exports = { gerarComGemini };
