@@ -20,7 +20,7 @@ async function gerarComGemini(prompt, history = []) {
   for (const key of keys) {
     try {
       const genAI = new GoogleGenerativeAI(key);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text();
