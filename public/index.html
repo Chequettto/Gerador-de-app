@@ -1,106 +1,172 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Oficina — Criador de Aplicativos</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css" />
-</head>
-<body>
+document.addEventListener('DOMContentLoaded', () => {
+  const el = {
+    prompt: document.getElementById('prompt'),
+    btnGerar: document.getElementById('btnGerar'),
+    btnGerarLabel: document.getElementById('btnGerarLabel'),
+    spinner: document.getElementById('spinner'),
+    status: document.getElementById('status'),
+    historyList: document.getElementById('historyList'),
+    apiStatus: document.getElementById('apiStatus'),
+    previewFrame: document.getElementById('previewFrame'),
+    codeViewText: document.getElementById('codeViewText'),
+    codeView: document.getElementById('codeView'),
+    emptyState: document.getElementById('emptyState'),
+    btnCopiar: document.getElementById('btnCopiar'),
+    btnBaixar: document.getElementById('btnBaixar'),
+    examples: document.getElementById('examples'),
+    tabs: document.querySelectorAll('.tab'),
+    devices: document.querySelectorAll('.device'),
+    frameWrap: document.getElementById('frameWrap')
+  };
 
-<div class="shell">
+  let state = {
+    codigoAtual: '',
+    historico: []
+  };
 
-  <!-- ===================== COLUNA ESQUERDA: OFICINA ===================== -->
-  <aside class="bench">
-    <header class="bench__brand">
-      <div class="brand__mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 L21 7 L21 17 L12 22 L3 17 L3 7 Z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M12 2 L12 22 M3 7 L21 17 M21 7 L3 17" stroke="currentColor" stroke-width="0.7" opacity="0.5"/></svg>
-      </div>
-      <div>
-        <p class="brand__title">Oficina</p>
-        <p class="brand__subtitle">criador de aplicativos · 1 rodada</p>
-      </div>
-    </header>
+  // Verifica o servidor ao carregar
+  fetch('/api/health')
+    .then(res => res.json())
+    .then(data => {
+      if (el.apiStatus) el.apiStatus.textContent = 'servidor online';
+    })
+    .catch(() => {
+      if (el.apiStatus) el.apiStatus.textContent = 'erro no servidor';
+    });
 
-    <div class="bench__field">
-      <label for="prompt" class="field__label">O que você quer construir?</label>
-      <textarea id="prompt" rows="7" placeholder="Ex: um app de checklist de viagem com categorias, progresso e botão de limpar tudo"></textarea>
-      <p class="field__hint" id="modeHint">Descreva com detalhes — quanto mais claro o pedido, melhor sai de primeira.</p>
-    </div>
+  // Clica nos exemplos prontos
+  if (el.examples) {
+    el.examples.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (chip && el.prompt) {
+        el.prompt.value = chip.getAttribute('data-example');
+      }
+    });
+  }
 
-    <div class="bench__examples" id="examples">
-      <button class="chip" data-example="Um app de metas financeiras: usuário cadastra uma meta, um valor alvo e vê uma barra de progresso ao registrar depósitos.">Metas financeiras</button>
-      <button class="chip" data-example="Um cronômetro Pomodoro com ciclos de foco e pausa, contador de ciclos completos e alerta sonoro simples via beep do navegador.">Pomodoro</button>
-      <button class="chip" data-example="Uma calculadora de dose de café: usuário informa gramas de café e o app calcula a água ideal para 3 métodos (V60, prensa francesa, aeropress).">Calculadora de café</button>
-      <button class="chip" data-example="Um gerador de citações motivacionais em cartões estilizados, com botão de nova citação e botão de copiar o texto.">Gerador de citações</button>
-    </div>
+  // Botão principal de gerar
+  if (el.btnGerar) {
+    el.btnGerar.addEventListener('click', async () => {
+      const promptText = el.prompt ? el.prompt.value.trim() : '';
+      if (!promptText) {
+        alert('Por favor, descreva o aplicativo que você quer criar.');
+        return;
+      }
 
-    <button id="btnGerar" class="btn-primary">
-      <span id="btnGerarLabel">Gerar aplicativo</span>
-      <span class="spinner" id="spinner" hidden></span>
-    </button>
+      setLoading(true);
 
-    <div class="bench__status" id="status" role="status" aria-live="polite"></div>
+      try {
+        const response = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: promptText, history: state.historico })
+        });
 
-    <div class="bench__history">
-      <p class="history__label">Histórico desta sessão</p>
-      <ul id="historyList" class="history__list"></ul>
-    </div>
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erro ao gerar aplicativo');
 
-    <footer class="bench__footer">
-      <span id="apiStatus">verificando servidor…</span>
-    </footer>
-  </aside>
+        state.codigoAtual = data.code;
+        
+        // Atualiza a pré-via
+        const blob = new Blob([data.code], { type: 'text/html' });
+        if (el.previewFrame) el.previewFrame.src = URL.createObjectURL(blob);
+        if (el.codeViewText) el.codeViewText.textContent = data.code;
 
-  <!-- ===================== COLUNA DIREITA: BANCADA DE PREVIEW ===================== -->
-  <main class="stage">
-    <div class="stage__bar">
-      <div class="stage__tabs">
-        <button class="tab is-active" data-view="preview">Prévia</button>
-        <button class="tab" data-view="code">Código</button>
-      </div>
+        // Mostra a tela e libera os botões de copiar/baixar
+        if (el.emptyState) el.emptyState.hidden = true;
+        if (el.btnCopiar) el.btnCopiar.disabled = false;
+        if (el.btnBaixar) el.btnBaixar.disabled = false;
 
-      <div class="stage__devices" id="devices">
-        <button class="device is-active" data-width="100%" title="Tela cheia">
-          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="2" y="4" width="20" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-        </button>
-        <button class="device" data-width="768px" title="Tablet">
-          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="4" y="2" width="16" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-        </button>
-        <button class="device" data-width="375px" title="Celular">
-          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="6" y="2" width="12" height="20" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-        </button>
-      </div>
+        // Salva histórico
+        state.historico.push({ prompt: promptText, code: data.code });
+        renderHistory();
 
-      <div class="stage__actions">
-        <button id="btnCopiar" class="btn-ghost" disabled>Copiar código</button>
-        <button id="btnBaixar" class="btn-ghost" disabled>Baixar .html</button>
-      </div>
-    </div>
+        if (el.status) el.status.textContent = 'Aplicativo gerado com sucesso!';
+      } catch (err) {
+        console.error(err);
+        if (el.status) el.status.textContent = 'Erro: ' + err.message;
+      } finally {
+        setLoading(false);
+      }
+    });
+  }
 
-    <div class="stage__viewport">
-      <div class="frame-wrap" id="frameWrap">
-        <iframe id="previewFrame" title="Prévia do aplicativo gerado"></iframe>
-      </div>
-      <pre id="codeView" class="code-view" hidden><code id="codeViewText"></code></pre>
+  function setLoading(loading) {
+    if (el.btnGerar) el.btnGerar.disabled = loading;
+    if (el.spinner) el.spinner.hidden = !loading;
+    if (el.btnGerarLabel) el.btnGerarLabel.textContent = loading ? 'Gerando...' : 'Gerar aplicativo';
+    if (loading && el.status) el.status.textContent = 'A Inteligência Artificial está montando o app...';
+  }
 
-      <div class="empty-state" id="emptyState">
-        <p>Nenhum aplicativo gerado ainda.</p>
-        <p class="empty-state__sub">Escreva o que você quer na coluna ao lado e clique em “Gerar aplicativo”.</p>
-      </div>
-    </div>
+  function renderHistory() {
+    if (!el.historyList) return;
+    el.historyList.innerHTML = '';
+    state.historico.forEach((item) => {
+      const li = document.createElement('li');
+      li.textContent = item.prompt;
+      li.addEventListener('click', () => {
+        state.codigoAtual = item.code;
+        const blob = new Blob([item.code], { type: 'text/html' });
+        if (el.previewFrame) el.previewFrame.src = URL.createObjectURL(blob);
+        if (el.codeViewText) el.codeViewText.textContent = item.code;
+        if (el.emptyState) el.emptyState.hidden = true;
+        if (el.btnCopiar) el.btnCopiar.disabled = false;
+        if (el.btnBaixar) el.btnBaixar.disabled = false;
+      });
+      el.historyList.appendChild(li);
+    });
+  }
 
-    <div class="stage__refine" id="refineBar" hidden>
-      <input id="refineInput" type="text" placeholder="Peça um ajuste no app gerado (ex: deixar o botão maior, mudar a cor para azul)…" />
-      <button id="btnRefinar" class="btn-secondary">Ajustar</button>
-    </div>
-  </main>
+  // Copiar código
+  if (el.btnCopiar) {
+    el.btnCopiar.addEventListener('click', async () => {
+      if (!state.codigoAtual) return;
+      await navigator.clipboard.writeText(state.codigoAtual);
+      const original = el.btnCopiar.textContent;
+      el.btnCopiar.textContent = 'Copiado!';
+      setTimeout(() => (el.btnCopiar.textContent = original), 1500);
+    });
+  }
 
-</div>
+  // Baixar arquivo HTML
+  if (el.btnBaixar) {
+    el.btnBaixar.addEventListener('click', () => {
+      if (!state.codigoAtual) return;
+      const blob = new Blob([state.codigoAtual], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'meu-aplicativo.html';
+      a.click();
+    });
+  }
 
-<script src="script.js"></script>
-</body>
-</html>
+  // Alternar entre abas Prévia e Código
+  if (el.tabs) {
+    el.tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        el.tabs.forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+        const view = tab.getAttribute('data-view');
+        if (view === 'preview') {
+          if (el.previewFrame) el.previewFrame.hidden = false;
+          if (el.codeView) el.codeView.hidden = true;
+        } else {
+          if (el.previewFrame) el.previewFrame.hidden = true;
+          if (el.codeView) el.codeView.hidden = false;
+        }
+      });
+    });
+  }
+
+  // Ajustar tamanho do dispositivo simulado
+  if (el.devices) {
+    el.devices.forEach(dev => {
+      dev.addEventListener('click', () => {
+        el.devices.forEach(d => d.classList.remove('is-active'));
+        dev.classList.add('is-active');
+        const w = dev.getAttribute('data-width');
+        if (el.frameWrap) el.frameWrap.style.width = w;
+      });
+    });
+  }
+});
