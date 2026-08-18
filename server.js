@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Carrega as chaves do Render/Environment
+// Carrega as chaves do ambiente
 const keys = [];
 for (let i = 1; i <= 10; i++) {
   const key = process.env[`GEMINI_API_KEY_${i}`];
@@ -18,22 +18,24 @@ for (let i = 1; i <= 10; i++) {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Rota para o front-end verificar o status do servidor
+// Rota de Health Check para liberar o "verificando servidor"
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', keysLoaded: keys.length });
 });
 
-// Rota principal para geração do aplicativo
+// Rota de Geração de Aplicativos
 app.post('/generate', async (req, res) => {
   try {
     const { prompt, history } = req.body;
-    if (!prompt) return res.status(400).json({ error: 'Prompt vazio' });
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt não fornecido' });
+    }
 
     const resultado = await gerarComGemini(prompt, history || []);
     res.json({ code: resultado });
   } catch (error) {
     console.error('Erro na geração:', error);
-    res.status(500).json({ error: error.message || 'Erro ao gerar aplicativo' });
+    res.status(500).json({ error: error.message || 'Erro ao processar requisição com IA' });
   }
 });
 
