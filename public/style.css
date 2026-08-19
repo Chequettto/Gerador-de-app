@@ -353,3 +353,111 @@ body{
 [hidden] {
   display: none !important;
 }
+
+/* ===================== LOGIN / CONTA ===================== */
+#accountArea{
+  margin-left:auto;
+}
+.account-chip{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--text-dim);
+}
+.account-chip__credits{
+  color:var(--brass);
+  font-weight:700;
+}
+.account-chip__email{
+  max-width:120px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.btn-ghost--small,.btn-secondary--small{
+  padding:5px 10px;
+  font-size:11px;
+  height:auto;
+}
+.bench__brand{
+  flex-wrap:wrap;
+}
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(15,16,19,0.75);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:50;
+}
+.auth-modal{
+  width:340px;
+  max-width:90vw;
+  background:var(--ink-2);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:20px;
+  position:relative;
+}
+.auth-modal__close{
+  position:absolute;
+  top:10px;
+  right:12px;
+  background:none;
+  border:none;
+  color:var(--text-dim);
+  font-size:18px;
+  cursor:pointer;
+}
+.auth-tabs{
+  display:flex;
+  gap:4px;
+  margin-bottom:16px;
+  border-bottom:1px solid var(--line);
+}
+.auth-tab{
+  flex:1;
+  background:none;
+  border:none;
+  color:var(--text-dim);
+  padding:8px;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+}
+.auth-tab.is-active{
+  color:var(--brass);
+  border-color:var(--brass);
+}
+.auth-field{
+  margin-bottom:10px;
+}
+.auth-field input{
+  width:100%;
+  background:var(--ink);
+  border:1px solid var(--line);
+  border-radius:8px;
+  color:var(--text);
+  padding:10px;
+  font-size:13px;
+  font-family:var(--sans);
+}
+.auth-field input:focus{
+  outline:none;
+  border-color:var(--brass);
+}
+.auth-error{
+  color:var(--err);
+  font-size:11.5px;
+  min-height:14px;
+  margin:6px 0;
+}
+.auth-submit{
+  width:100%;
+  margin-top:6px;
+}
