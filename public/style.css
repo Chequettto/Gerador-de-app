@@ -570,3 +570,79 @@ body{
   animation:fadeSlideIn .15s ease both;
   backdrop-filter:blur(2px);
 }
+
+/* ===================== BARRA DE ETAPAS (Planejando -> Criando) ===================== */
+.stage-bar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  background:var(--ink);
+  border:1px solid var(--line);
+  border-radius:8px;
+}
+.stage-bar__step{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:11.5px;
+  color:var(--text-dim);
+  transition:color .25s ease;
+}
+.stage-bar__dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--line);
+  transition:background .25s ease, box-shadow .25s ease;
+}
+.stage-bar__step.is-active .stage-bar__dot{
+  background:var(--brass);
+  box-shadow:0 0 8px rgba(212,162,76,0.6);
+  animation:pulseDot 1s ease-in-out infinite;
+}
+.stage-bar__step.is-active{color:var(--brass);font-weight:600;}
+.stage-bar__step.is-done .stage-bar__dot{background:var(--ok);box-shadow:none;animation:none;}
+.stage-bar__step.is-done{color:var(--ok);}
+.stage-bar__line{
+  flex:1;
+  height:1px;
+  background:var(--line);
+}
+@keyframes pulseDot{
+  0%,100%{opacity:1;}
+  50%{opacity:0.4;}
+}
+
+.plano-list{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.plano-list li{
+  font-size:11.5px;
+  color:var(--text-dim);
+  padding-left:14px;
+  position:relative;
+  animation:fadeSlideIn .25s ease both;
+}
+.plano-list li::before{
+  content:"→";
+  position:absolute;
+  left:0;
+  color:var(--brass-soft);
+}
+
+/* ===================== LIMPEZA DA BARRA DE CIMA ===================== */
+.stage__actions{
+  display:flex;
+  gap:6px;
+  align-items:center;
+}
+.stage__actions .btn-secondary{
+  height:32px;
+  display:flex;
+  align-items:center;
+}

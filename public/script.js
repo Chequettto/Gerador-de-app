@@ -13,28 +13,33 @@ document.addEventListener('DOMContentLoaded', () => {
     emptyState: document.getElementById('emptyState'),
     btnCopiar: document.getElementById('btnCopiar'),
     btnBaixar: document.getElementById('btnBaixar'),
+    btnSalvar: document.getElementById('btnSalvar'),
     examples: document.getElementById('examples'),
     tabs: document.querySelectorAll('.tab'),
     devices: document.querySelectorAll('.device'),
-    frameWrap: document.getElementById('frameWrap')
+    frameWrap: document.getElementById('frameWrap'),
+    stageBar: document.getElementById('stageBar'),
+    stagePlanejar: document.getElementById('stagePlanejar'),
+    stageCriar: document.getElementById('stageCriar'),
+    planoList: document.getElementById('planoList'),
   };
 
   let state = {
     codigoAtual: '',
+    promptAtual: '',
+    planoAtual: [],
     historico: []
   };
 
-  // Verifica o servidor ao carregar
   fetch('/api/health')
     .then(res => res.json())
-    .then(data => {
+    .then(() => {
       if (el.apiStatus) el.apiStatus.textContent = 'servidor online';
     })
     .catch(() => {
       if (el.apiStatus) el.apiStatus.textContent = 'erro no servidor';
     });
 
-  // Clica nos exemplos prontos
   if (el.examples) {
     el.examples.addEventListener('click', (e) => {
       const chip = e.target.closest('.chip');
@@ -44,9 +49,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Botão principal de gerar
+  function setStage(stage) {
+    if (!el.stageBar) return;
+    el.stageBar.hidden = false;
+    el.stagePlanejar.classList.toggle('is-active', stage === 'planejando');
+    el.stagePlanejar.classList.toggle('is-done', stage === 'criando' || stage === 'concluido');
+    el.stageCriar.classList.toggle('is-active', stage === 'criando');
+    el.stageCriar.classList.toggle('is-done', stage === 'concluido');
+  }
+
+  function renderPlano(plano) {
+    if (!el.planoList || !plano) return;
+    el.planoList.innerHTML = '';
+    plano.forEach((item) => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      el.planoList.appendChild(li);
+    });
+    el.planoList.hidden = false;
+  }
+
   if (el.btnGerar) {
-    el.btnGerar.addEventListener('click', async () => {
+    el.btnGerar.addEventListener('click', () => {
       const promptText = el.prompt ? el.prompt.value.trim() : '';
       if (!promptText) {
         alert('Por favor, descreva o aplicativo que você quer criar.');
@@ -54,43 +78,62 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       setLoading(true);
+      state.promptAtual = promptText;
+      if (el.planoList) { el.planoList.innerHTML = ''; el.planoList.hidden = true; }
+      setStage('planejando');
 
-      try {
-        const response = await fetch('/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: promptText, history: state.historico })
-        });
+      const source = new EventSource('/generate/stream?prompt=' + encodeURIComponent(promptText));
 
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Erro ao gerar aplicativo');
+      source.onmessage = (event) => {
+        const data = JSON.parse(event.data);
 
-        state.codigoAtual = data.code;
-
-        // Atualiza a pré-via
-        const blob = new Blob([data.code], { type: 'text/html' });
-        if (el.previewFrame) {
-          el.previewFrame.hidden = false;
-          el.previewFrame.src = URL.createObjectURL(blob);
+        if (data.stage === 'planejando' && data.plano) {
+          renderPlano(data.plano);
+          state.planoAtual = data.plano;
         }
-        if (el.codeViewText) el.codeViewText.textContent = data.code;
+        if (data.stage === 'criando') {
+          setStage('criando');
+          if (el.status) el.status.textContent = data.message;
+        }
+        if (data.stage === 'planejando' && !data.plano) {
+          if (el.status) el.status.textContent = data.message;
+        }
 
-        // Mostra a tela e libera os botões de copiar/baixar
-        if (el.emptyState) el.emptyState.hidden = true;
-        if (el.btnCopiar) el.btnCopiar.disabled = false;
-        if (el.btnBaixar) el.btnBaixar.disabled = false;
+        if (data.stage === 'salvo_temp') {
+          state.codigoAtual = data.html;
 
-        // Salva histórico
-        state.historico.push({ prompt: promptText, code: data.code });
-        renderHistory();
+          const blob = new Blob([data.html], { type: 'text/html' });
+          if (el.previewFrame) {
+            el.previewFrame.hidden = false;
+            el.previewFrame.src = URL.createObjectURL(blob);
+          }
+          if (el.codeViewText) el.codeViewText.textContent = data.html;
 
-        if (el.status) el.status.textContent = 'Aplicativo gerado com sucesso!';
-      } catch (err) {
-        console.error(err);
-        if (el.status) el.status.textContent = 'Erro: ' + err.message;
-      } finally {
+          if (el.emptyState) el.emptyState.hidden = true;
+          if (el.btnCopiar) el.btnCopiar.disabled = false;
+          if (el.btnBaixar) el.btnBaixar.disabled = false;
+          if (el.btnSalvar) el.btnSalvar.disabled = false;
+
+          state.historico.push({ prompt: promptText, code: data.html, plano: state.planoAtual });
+          renderHistory();
+
+          if (el.status) el.status.textContent = 'Aplicativo gerado com sucesso!';
+          setLoading(false);
+          source.close();
+        }
+
+        if (data.stage === 'erro') {
+          if (el.status) el.status.textContent = 'Erro: ' + data.message;
+          setLoading(false);
+          source.close();
+        }
+      };
+
+      source.onerror = () => {
+        if (el.status) el.status.textContent = 'Erro de conexão ao gerar o aplicativo.';
         setLoading(false);
-      }
+        source.close();
+      };
     });
   }
 
@@ -99,6 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el.spinner) el.spinner.hidden = !loading;
     if (el.btnGerarLabel) el.btnGerarLabel.textContent = loading ? 'Gerando...' : 'Gerar aplicativo';
     if (loading && el.status) el.status.textContent = 'A Inteligência Artificial está montando o app...';
+    if (!loading && el.stageBar) {
+      setTimeout(() => { el.stageBar.hidden = true; }, 1200);
+    }
   }
 
   function renderHistory() {
@@ -109,6 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
       li.textContent = item.prompt;
       li.addEventListener('click', () => {
         state.codigoAtual = item.code;
+        state.promptAtual = item.prompt;
+        state.planoAtual = item.plano || [];
         const blob = new Blob([item.code], { type: 'text/html' });
         if (el.previewFrame) {
           el.previewFrame.hidden = false;
@@ -118,12 +166,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el.emptyState) el.emptyState.hidden = true;
         if (el.btnCopiar) el.btnCopiar.disabled = false;
         if (el.btnBaixar) el.btnBaixar.disabled = false;
+        if (el.btnSalvar) el.btnSalvar.disabled = false;
       });
       el.historyList.appendChild(li);
     });
   }
 
-  // Copiar código
   if (el.btnCopiar) {
     el.btnCopiar.addEventListener('click', async () => {
       if (!state.codigoAtual) return;
@@ -134,7 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Baixar arquivo HTML
   if (el.btnBaixar) {
     el.btnBaixar.addEventListener('click', () => {
       if (!state.codigoAtual) return;
@@ -146,7 +193,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Alternar entre abas Prévia e Código
+  if (el.btnSalvar) {
+    el.btnSalvar.addEventListener('click', async () => {
+      if (!state.codigoAtual) return;
+      el.btnSalvar.disabled = true;
+      const original = el.btnSalvar.textContent;
+      el.btnSalvar.textContent = 'Salvando...';
+      try {
+        const res = await fetch('/api/projects/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: state.promptAtual, plano: state.planoAtual, html: state.codigoAtual }),
+        });
+        if (!res.ok) throw new Error('Falha ao salvar');
+        el.btnSalvar.textContent = 'Salvo ✓';
+        setTimeout(() => { el.btnSalvar.textContent = original; el.btnSalvar.disabled = false; }, 1800);
+      } catch {
+        el.btnSalvar.textContent = 'Erro ao salvar';
+        setTimeout(() => { el.btnSalvar.textContent = original; el.btnSalvar.disabled = false; }, 1800);
+      }
+    });
+  }
+
   if (el.tabs) {
     el.tabs.forEach(tab => {
       tab.addEventListener('click', () => {
@@ -164,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Ajustar tamanho do dispositivo simulado
   if (el.devices) {
     el.devices.forEach(dev => {
       dev.addEventListener('click', () => {

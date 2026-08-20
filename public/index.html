@@ -33,6 +33,21 @@
       <span class="spinner" id="spinner" hidden></span>
       <span id="btnGerarLabel">Gerar aplicativo</span>
     </button>
+
+    <!-- ===================== BARRA DE ETAPAS ===================== -->
+    <div class="stage-bar" id="stageBar" hidden>
+      <div class="stage-bar__step" id="stagePlanejar">
+        <span class="stage-bar__dot"></span>
+        <span class="stage-bar__label">Planejando</span>
+      </div>
+      <div class="stage-bar__line"></div>
+      <div class="stage-bar__step" id="stageCriar">
+        <span class="stage-bar__dot"></span>
+        <span class="stage-bar__label">Criando</span>
+      </div>
+    </div>
+    <ul class="plano-list" id="planoList" hidden></ul>
+
     <p class="bench__status" id="status"></p>
     <div class="bench__history">
       <p class="history__label">Histórico</p>
@@ -55,6 +70,7 @@
       <div class="stage__actions">
         <button class="btn-ghost" id="btnCopiar" disabled>Copiar código</button>
         <button class="btn-ghost" id="btnBaixar" disabled>Baixar .html</button>
+        <button class="btn-secondary" id="btnSalvar" disabled>Salvar na Oficina</button>
       </div>
     </div>
     <div class="stage__viewport">
