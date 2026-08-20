@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopiar: document.getElementById('btnCopiar'),
     btnBaixar: document.getElementById('btnBaixar'),
     btnSalvar: document.getElementById('btnSalvar'),
+    refineInput: document.getElementById('refineInput'),
+    btnRefinar: document.getElementById('btnRefinar'),
+    btnMeusProjetos: document.getElementById('btnMeusProjetos'),
     examples: document.getElementById('examples'),
     tabs: document.querySelectorAll('.tab'),
     devices: document.querySelectorAll('.device'),
@@ -33,6 +36,22 @@ document.addEventListener('DOMContentLoaded', () => {
     historico: []
   };
 
+  function showGeneratedCode(html, promptText = state.promptAtual) {
+    state.codigoAtual = html;
+    const blob = new Blob([html], { type: 'text/html' });
+    if (el.previewFrame) {
+      el.previewFrame.hidden = false;
+      el.previewFrame.src = URL.createObjectURL(blob);
+    }
+    if (el.codeViewText) el.codeViewText.textContent = html;
+    if (el.emptyState) el.emptyState.hidden = true;
+    if (el.btnCopiar) el.btnCopiar.disabled = false;
+    if (el.btnBaixar) el.btnBaixar.disabled = false;
+    if (el.btnSalvar) el.btnSalvar.disabled = false;
+    if (el.btnRefinar) el.btnRefinar.disabled = false;
+    state.promptAtual = promptText;
+  }
+
   fetch('/api/health')
     .then(res => res.json())
     .then(() => {
@@ -50,6 +69,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  el.prompt?.addEventListener('keydown', (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      el.btnGerar?.click();
+    }
+  });
 
   // ===================== MICROFONE (falar em vez de digitar) =====================
   (function setupMic() {
@@ -152,19 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (data.stage === 'salvo_temp') {
-          state.codigoAtual = data.html;
-
-          const blob = new Blob([data.html], { type: 'text/html' });
-          if (el.previewFrame) {
-            el.previewFrame.hidden = false;
-            el.previewFrame.src = URL.createObjectURL(blob);
-          }
-          if (el.codeViewText) el.codeViewText.textContent = data.html;
-
-          if (el.emptyState) el.emptyState.hidden = true;
-          if (el.btnCopiar) el.btnCopiar.disabled = false;
-          if (el.btnBaixar) el.btnBaixar.disabled = false;
-          if (el.btnSalvar) el.btnSalvar.disabled = false;
+          showGeneratedCode(data.html, promptText);
 
           state.historico.push({ prompt: promptText, code: data.html, plano: state.planoAtual });
           renderHistory();
@@ -206,23 +220,79 @@ document.addEventListener('DOMContentLoaded', () => {
       const li = document.createElement('li');
       li.textContent = item.prompt;
       li.addEventListener('click', () => {
-        state.codigoAtual = item.code;
-        state.promptAtual = item.prompt;
         state.planoAtual = item.plano || [];
-        const blob = new Blob([item.code], { type: 'text/html' });
-        if (el.previewFrame) {
-          el.previewFrame.hidden = false;
-          el.previewFrame.src = URL.createObjectURL(blob);
-        }
-        if (el.codeViewText) el.codeViewText.textContent = item.code;
-        if (el.emptyState) el.emptyState.hidden = true;
-        if (el.btnCopiar) el.btnCopiar.disabled = false;
-        if (el.btnBaixar) el.btnBaixar.disabled = false;
-        if (el.btnSalvar) el.btnSalvar.disabled = false;
+        showGeneratedCode(item.code, item.prompt);
       });
       el.historyList.appendChild(li);
     });
   }
+
+  async function carregarProjetosSalvos() {
+    if (!el.btnMeusProjetos) return;
+    const original = el.btnMeusProjetos.innerHTML;
+    el.btnMeusProjetos.disabled = true;
+    el.btnMeusProjetos.innerHTML = '<span>...</span> Carregando projetos';
+    try {
+      const res = await fetch('/api/projects');
+      if (res.status === 401) {
+        if (el.status) el.status.textContent = 'Entre na sua conta para acessar seus projetos salvos.';
+        return;
+      }
+      const data = await res.json();
+      const projetos = data.projects || [];
+      if (!projetos.length) {
+        if (el.status) el.status.textContent = 'Nenhum projeto salvo ainda.';
+        return;
+      }
+      projetos.forEach((projeto) => {
+        state.historico.push({
+          prompt: projeto.nome || projeto.prompt,
+          code: projeto.html,
+          plano: projeto.plano || [],
+        });
+      });
+      renderHistory();
+      if (el.status) el.status.textContent = `${projetos.length} projeto(s) carregado(s).`;
+    } catch {
+      if (el.status) el.status.textContent = 'Não foi possível carregar seus projetos.';
+    } finally {
+      el.btnMeusProjetos.disabled = false;
+      el.btnMeusProjetos.innerHTML = original;
+    }
+  }
+
+  el.btnMeusProjetos?.addEventListener('click', carregarProjetosSalvos);
+
+  el.btnRefinar?.addEventListener('click', async () => {
+    const pedido = el.refineInput?.value.trim();
+    if (!pedido || !state.codigoAtual) return;
+    el.btnRefinar.disabled = true;
+    el.btnRefinar.textContent = 'Aplicando...';
+    if (el.status) el.status.textContent = 'A IA está atualizando seu aplicativo...';
+    try {
+      const res = await fetch('/refine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: state.codigoAtual, pedido }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao refinar');
+      showGeneratedCode(data.code, state.promptAtual + ' / ' + pedido);
+      state.historico.push({ prompt: 'Ajuste: ' + pedido, code: data.code, plano: state.planoAtual });
+      renderHistory();
+      if (el.refineInput) el.refineInput.value = '';
+      if (el.status) el.status.textContent = 'Alteração aplicada com sucesso!';
+    } catch (error) {
+      if (el.status) el.status.textContent = 'Erro: ' + error.message;
+    } finally {
+      el.btnRefinar.disabled = false;
+      el.btnRefinar.textContent = 'Aplicar alteração';
+    }
+  });
+
+  el.refineInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') el.btnRefinar?.click();
+  });
 
   if (el.btnCopiar) {
     el.btnCopiar.addEventListener('click', async () => {

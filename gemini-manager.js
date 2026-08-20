@@ -103,4 +103,33 @@ async function gerarComGemini(prompt, history = [], onStep = () => {}) {
   );
 }
 
-module.exports = { gerarComGemini };
+async function refinarComGemini(htmlAtual, pedido, onStep = () => {}) {
+  const keys = getApiKeys();
+  if (keys.length === 0) throw new Error('Nenhuma chave de API configurada.');
+
+  const instrucao = `${INSTRUCAO_CODIGO}
+
+Você está refinando um aplicativo existente. Preserve tudo que já funciona e aplique somente as mudanças pedidas.
+Garanta que o resultado continue sendo um documento HTML completo e autocontido.
+
+Pedido de refinamento: ${pedido}
+
+Código atual:
+${htmlAtual}`;
+
+  onStep({ stage: 'refinando', message: 'Aplicando as alterações no aplicativo...' });
+  let ultimoErro = null;
+  for (const key of keys) {
+    try {
+      const html = extrairHtml(await chamarGemini(key, instrucao));
+      onStep({ stage: 'concluido', message: 'Alteração aplicada!' });
+      return html;
+    } catch (err) {
+      ultimoErro = err;
+      console.warn('Erro no refinamento com uma das chaves, tentando a próxima...', err.message);
+    }
+  }
+  throw new Error('Não foi possível aplicar o refinamento. Último erro: ' + (ultimoErro?.message || 'desconhecido'));
+}
+
+module.exports = { gerarComGemini, refinarComGemini };

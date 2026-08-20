@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const cookieParser = require('cookie-parser');
-const { gerarComGemini } = require('./gemini-manager');
+const { gerarComGemini, refinarComGemini } = require('./gemini-manager');
 const {
   createUser,
   getUserByEmail,
@@ -147,6 +147,18 @@ app.post('/generate', async (req, res) => {
   } catch (error) {
     console.error('Erro na geração:', error);
     res.status(500).json({ error: error.message || 'Erro ao processar requisição com IA' });
+  }
+});
+
+app.post('/refine', async (req, res) => {
+  const { html, pedido } = req.body || {};
+  if (!html || !pedido) return res.status(400).json({ error: 'Aplicativo e pedido de alteração são obrigatórios' });
+  try {
+    const codigo = await refinarComGemini(html, pedido);
+    res.json({ code: codigo });
+  } catch (error) {
+    console.error('Erro no refinamento:', error);
+    res.status(500).json({ error: error.message || 'Erro ao aplicar alteração' });
   }
 });
 

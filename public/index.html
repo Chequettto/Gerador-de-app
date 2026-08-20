@@ -18,6 +18,11 @@
       </div>
       <div id="accountArea"></div>
     </div>
+    <div class="workspace-nav" aria-label="Navegação do workspace">
+      <button class="workspace-nav__item is-active" type="button"><span>✦</span> Criar aplicativo</button>
+      <button class="workspace-nav__item" type="button" id="btnMeusProjetos"><span>▦</span> Meus projetos</button>
+    </div>
+    <div class="bench__eyebrow"><span class="eyebrow__dot"></span> Workspace de criação <span class="eyebrow__status">online</span></div>
     <div>
       <label class="field__label" for="prompt">Descreva seu aplicativo</label>
       <div class="prompt-wrap">
@@ -27,6 +32,7 @@
       <p class="field__hint" id="micHint">Quanto mais detalhes, melhor o resultado.</p>
     </div>
     <div class="bench__examples" id="examples">
+      <p class="examples__title">Comece com uma ideia</p>
       <button class="chip" data-example="Crie uma lista de tarefas com prioridade">Lista de tarefas</button>
       <button class="chip" data-example="Crie uma calculadora de IMC">Calculadora de IMC</button>
       <button class="chip" data-example="Crie um conversor de moedas">Conversor de moedas</button>
@@ -76,6 +82,10 @@
         <button class="btn-secondary" id="btnSalvar" disabled>Salvar na Oficina</button>
       </div>
     </div>
+    <div class="stage__context">
+      <div><span class="context__label">ESTÚDIO</span><strong>Seu aplicativo, em tempo real</strong></div>
+      <span class="context__hint">Descreva. Gere. Refine.</span>
+    </div>
     <div class="stage__viewport">
       <div class="frame-wrap" id="frameWrap">
         <iframe id="previewFrame" hidden></iframe>
@@ -85,6 +95,11 @@
         <p><strong>Nenhum aplicativo gerado ainda</strong></p>
         <p class="empty-state__sub">Descreva o que você quer criar na bancada ao lado e clique em "Gerar aplicativo".</p>
       </div>
+    </div>
+    <div class="stage__refine">
+      <span class="refine__spark">✦</span>
+      <input id="refineInput" type="text" placeholder="Peça uma alteração no app gerado..." autocomplete="off">
+      <button class="btn-secondary" id="btnRefinar" disabled>Aplicar alteração</button>
     </div>
   </main>
 </div>
