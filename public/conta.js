@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentUser) {
       el.accountArea.innerHTML = `
         <div class="account-chip">
-          <span class="account-chip__credits">${currentUser.unlimited ? '∞' : currentUser.credits} créditos</span>
+          <span class="account-chip__credits">⚡ ${currentUser.unlimited ? '∞' : currentUser.credits}</span>
           <span class="account-chip__email">${currentUser.email}</span>
           <button class="btn-ghost btn-ghost--small" id="btnLogout">Sair</button>
         </div>
