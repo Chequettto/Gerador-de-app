@@ -12,6 +12,9 @@ const {
   applyInviteBonusIfNeeded,
   invitesRequiredForNextTier,
   countSignupsByIp,
+  saveProject,
+  getProjectById,
+  listProjectsByUser,
 } = require('./db');
 const { signUserToken, requireAuth, hashPassword, comparePassword } = require('./auth');
 
@@ -43,9 +46,21 @@ function publicUser(user) {
   };
 }
 
+// tenta pegar o usuário logado, sem exigir login (gerar app funciona sem conta também)
+function tryGetUser(req) {
+  const token = req.cookies && req.cookies.oficina_token;
+  if (!token) return null;
+  const { verifyToken } = require('./auth');
+  const payload = verifyToken(token);
+  if (!payload) return null;
+  return getUserById(payload.uid);
+}
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', keysLoaded: keys.length });
 });
+
+// ---------- Auth ----------
 
 app.post('/api/auth/signup', (req, res) => {
   const { email, password, name, referralCode } = req.body || {};
@@ -93,18 +108,67 @@ app.get('/api/me', requireAuth, (req, res) => {
   res.json({ user: publicUser(user), nextTier: invitesRequiredForNextTier(user) });
 });
 
+// ---------- Geração com etapas em tempo real (Server-Sent Events) ----------
+
+app.get('/generate/stream', async (req, res) => {
+  const prompt = req.query.prompt;
+  if (!prompt) {
+    res.status(400).json({ error: 'Prompt não fornecido' });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  try {
+    const { html, plano } = await gerarComGemini(prompt, [], (step) => send(step));
+    send({ stage: 'salvo_temp', html, plano });
+  } catch (error) {
+    console.error('Erro na geração:', error);
+    send({ stage: 'erro', message: error.message || 'Erro ao processar requisição com IA' });
+  } finally {
+    res.end();
+  }
+});
+
+// mantém a rota antiga funcionando também, sem streaming, pra compatibilidade
 app.post('/generate', async (req, res) => {
   try {
-    const { prompt, history } = req.body;
+    const { prompt } = req.body;
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt não fornecido' });
     }
-    const resultado = await gerarComGemini(prompt, history || []);
-    res.json({ code: resultado });
+    const { html, plano } = await gerarComGemini(prompt, [], () => {});
+    res.json({ code: html, plano });
   } catch (error) {
     console.error('Erro na geração:', error);
     res.status(500).json({ error: error.message || 'Erro ao processar requisição com IA' });
   }
+});
+
+// ---------- Salvar app gerado na plataforma ----------
+
+app.post('/api/projects/save', (req, res) => {
+  const { prompt, plano, html, nome } = req.body || {};
+  if (!html || !prompt) return res.status(400).json({ error: 'Dados incompletos para salvar' });
+
+  const user = tryGetUser(req);
+  const project = saveProject({ userId: user ? user.id : null, prompt, plano, html, nome });
+  res.json({ project: { id: project.id, nome: project.nome, created_at: project.created_at } });
+});
+
+app.get('/api/projects', requireAuth, (req, res) => {
+  res.json({ projects: listProjectsByUser(req.userId) });
+});
+
+app.get('/api/projects/:id', (req, res) => {
+  const project = getProjectById(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Não encontrado' });
+  res.json({ project });
 });
 
 app.listen(PORT, () => {

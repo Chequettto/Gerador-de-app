@@ -1,4 +1,4 @@
-// db.js — banco de dados (SQLite local). Formato CommonJS, igual ao resto do seu projeto.
+// db.js — banco de dados (SQLite local). Formato CommonJS.
 const Database = require('better-sqlite3');
 const crypto = require('crypto');
 
@@ -33,6 +33,16 @@ CREATE TABLE IF NOT EXISTS ip_signups (
   user_id TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  prompt TEXT NOT NULL,
+  plano TEXT,
+  html TEXT NOT NULL,
+  nome TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 
 function newId() {
@@ -43,14 +53,13 @@ function genReferralCode() {
   return crypto.randomBytes(4).toString('hex');
 }
 
-// Regras de crédito — mudar aqui muda o app inteiro
 const CREDIT_RULES = {
   SIGNUP_FREE: 20,
-  SIGNUP_VIA_INVITE_BONUS: 6, // soma aos 20 -> 26 se veio de convite
+  SIGNUP_VIA_INVITE_BONUS: 6,
   INVITE_TIERS: [
     { tier: 1, invitesRequired: 1, bonus: 6 },
     { tier: 2, invitesRequired: 2, bonus: 12 },
-    { tier: 3, invitesRequired: 3, bonus: 18 }, // teto
+    { tier: 3, invitesRequired: 3, bonus: 18 },
   ],
 };
 
@@ -138,6 +147,26 @@ function setUnlimited(userId, value) {
   return getUserById(userId);
 }
 
+// ---------- Projetos salvos (o "guardar na plataforma") ----------
+
+function saveProject({ userId, prompt, plano, html, nome }) {
+  const id = newId();
+  db.prepare(
+    `INSERT INTO projects (id, user_id, prompt, plano, html, nome) VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(id, userId || null, prompt, JSON.stringify(plano || []), html, nome || prompt.slice(0, 60));
+  return getProjectById(id);
+}
+
+function getProjectById(id) {
+  return db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+}
+
+function listProjectsByUser(userId) {
+  return db
+    .prepare('SELECT id, prompt, nome, created_at FROM projects WHERE user_id = ? ORDER BY created_at DESC')
+    .all(userId);
+}
+
 module.exports = {
   CREDIT_RULES,
   createUser,
@@ -148,4 +177,7 @@ module.exports = {
   applyInviteBonusIfNeeded,
   invitesRequiredForNextTier,
   setUnlimited,
+  saveProject,
+  getProjectById,
+  listProjectsByUser,
 };
