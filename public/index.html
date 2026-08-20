@@ -20,8 +20,11 @@
     </div>
     <div>
       <label class="field__label" for="prompt">Descreva seu aplicativo</label>
-      <textarea id="prompt" rows="6" placeholder="Ex: crie uma lista de tarefas com prioridade e prazo..."></textarea>
-      <p class="field__hint">Quanto mais detalhes, melhor o resultado.</p>
+      <div class="prompt-wrap">
+        <textarea id="prompt" rows="6" placeholder="Ex: crie uma lista de tarefas com prioridade e prazo..."></textarea>
+        <button type="button" class="btn-mic" id="btnMic" title="Falar em vez de digitar">🎤</button>
+      </div>
+      <p class="field__hint" id="micHint">Quanto mais detalhes, melhor o resultado.</p>
     </div>
     <div class="bench__examples" id="examples">
       <button class="chip" data-example="Crie uma lista de tarefas com prioridade">Lista de tarefas</button>
@@ -63,9 +66,9 @@
         <button class="tab" data-view="code">Código</button>
       </div>
       <div class="stage__devices">
-        <button class="device is-active" data-width="100%" title="Desktop">🖥</button>
-        <button class="device" data-width="768px" title="Tablet">📱</button>
-        <button class="device" data-width="375px" title="Celular">📱</button>
+        <button class="device is-active" data-width="100%" title="Desktop">Desktop</button>
+        <button class="device" data-width="768px" title="Tablet">Tablet</button>
+        <button class="device" data-width="375px" title="Celular">Celular</button>
       </div>
       <div class="stage__actions">
         <button class="btn-ghost" id="btnCopiar" disabled>Copiar código</button>

@@ -646,3 +646,72 @@ body{
   display:flex;
   align-items:center;
 }
+
+/* ===================== BOTÕES DE DISPOSITIVO (texto claro em vez de ícone ambíguo) ===================== */
+.stage__devices{
+  display:flex;
+  gap:4px;
+  margin-left:auto;
+}
+.device{
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--text-dim);
+  padding:0 12px;
+  height:28px;
+  border-radius:7px;
+  cursor:pointer;
+  font-size:11px;
+  font-weight:600;
+  font-family:var(--sans);
+  white-space:nowrap;
+  transition:border-color .15s, color .15s, background .15s;
+}
+.device:hover{
+  color:var(--text);
+  border-color:var(--brass-soft);
+}
+.device.is-active{
+  border-color:var(--brass);
+  color:var(--brass);
+  background:rgba(212,162,76,0.08);
+}
+
+/* ===================== MICROFONE (falar em vez de digitar) ===================== */
+.prompt-wrap{
+  position:relative;
+}
+.prompt-wrap textarea{
+  padding-right:44px;
+}
+.btn-mic{
+  position:absolute;
+  right:8px;
+  top:8px;
+  width:30px;
+  height:30px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--ink-2);
+  color:var(--text-dim);
+  cursor:pointer;
+  font-size:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:border-color .15s, color .15s, background .15s;
+}
+.btn-mic:hover{
+  border-color:var(--brass-soft);
+  color:var(--text);
+}
+.btn-mic.is-recording{
+  border-color:var(--ember);
+  color:var(--ember);
+  background:rgba(201,100,66,0.1);
+  animation:micPulse 1s ease-in-out infinite;
+}
+@keyframes micPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(201,100,66,0.4);}
+  50%{box-shadow:0 0 0 6px rgba(201,100,66,0);}
+}

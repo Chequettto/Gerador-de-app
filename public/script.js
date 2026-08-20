@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     stagePlanejar: document.getElementById('stagePlanejar'),
     stageCriar: document.getElementById('stageCriar'),
     planoList: document.getElementById('planoList'),
+    btnMic: document.getElementById('btnMic'),
+    micHint: document.getElementById('micHint'),
   };
 
   let state = {
@@ -48,6 +50,56 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // ===================== MICROFONE (falar em vez de digitar) =====================
+  (function setupMic() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      if (el.btnMic) {
+        el.btnMic.disabled = true;
+        el.btnMic.title = 'Seu navegador não suporta reconhecimento de voz. Tente pelo Chrome.';
+        el.btnMic.style.opacity = '0.35';
+      }
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    let gravando = false;
+
+    recognition.onresult = (event) => {
+      const texto = event.results[0][0].transcript;
+      if (el.prompt) {
+        el.prompt.value = el.prompt.value ? el.prompt.value + ' ' + texto : texto;
+      }
+    };
+
+    recognition.onerror = () => {
+      if (el.micHint) el.micHint.textContent = 'Não consegui te ouvir, tenta de novo.';
+    };
+
+    recognition.onend = () => {
+      gravando = false;
+      if (el.btnMic) el.btnMic.classList.remove('is-recording');
+      if (el.micHint) el.micHint.textContent = 'Quanto mais detalhes, melhor o resultado.';
+    };
+
+    if (el.btnMic) {
+      el.btnMic.addEventListener('click', () => {
+        if (gravando) {
+          recognition.stop();
+          return;
+        }
+        gravando = true;
+        el.btnMic.classList.add('is-recording');
+        if (el.micHint) el.micHint.textContent = 'Ouvindo... fale o que você quer criar.';
+        recognition.start();
+      });
+    }
+  })();
 
   function setStage(stage) {
     if (!el.stageBar) return;
