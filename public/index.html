@@ -1,40 +1,119 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>AI App Builder</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oficina — Criador de Aplicativos com IA</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div class="container">
-
-  <!-- LEFT -->
-  <div class="left">
-    <h1>Crie apps com IA<br>em 30 segundos</h1>
-
-    <textarea id="prompt" placeholder="Ex: app de vendas com comissão automática..."></textarea>
-
-    <div class="suggestions">
-      <button onclick="setPrompt('App de vendas')">App de vendas</button>
-      <button onclick="setPrompt('Sistema financeiro')">Sistema financeiro</button>
-      <button onclick="setPrompt('Delivery simples')">Delivery</button>
-      <button onclick="setPrompt('CRM básico')">CRM</button>
+<div class="shell">
+  <!-- ===================== BANCADA ESQUERDA ===================== -->
+  <aside class="bench">
+    <div class="bench__brand">
+      <div class="brand__mark">⚙</div>
+      <div>
+        <p class="brand__title">Oficina</p>
+        <p class="brand__subtitle" id="apiStatus">verificando servidor...</p>
+      </div>
+      <div id="accountArea"></div>
     </div>
-
-    <button class="generate" onclick="generateApp()">Gerar aplicativo</button>
-  </div>
-
-  <!-- RIGHT -->
-  <div class="right" id="preview">
-    <div class="empty">
-      <h2>Preview em tempo real</h2>
-      <p>Seu app aparecerá aqui</p>
+    <div>
+      <label class="field__label" for="prompt">Descreva seu aplicativo</label>
+      <div class="prompt-wrap">
+        <textarea id="prompt" rows="6" placeholder="Ex: crie uma lista de tarefas com prioridade e prazo..."></textarea>
+        <button type="button" class="btn-mic" id="btnMic" title="Falar em vez de digitar">🎤</button>
+      </div>
+      <p class="field__hint" id="micHint">Quanto mais detalhes, melhor o resultado.</p>
     </div>
-  </div>
+    <div class="bench__examples" id="examples">
+      <button class="chip" data-example="Crie uma lista de tarefas com prioridade">Lista de tarefas</button>
+      <button class="chip" data-example="Crie uma calculadora de IMC">Calculadora de IMC</button>
+      <button class="chip" data-example="Crie um conversor de moedas">Conversor de moedas</button>
+      <button class="chip" data-example="Crie um cronômetro Pomodoro">Pomodoro</button>
+    </div>
+    <button class="btn-primary" id="btnGerar">
+      <span class="spinner" id="spinner" hidden></span>
+      <span id="btnGerarLabel">Gerar aplicativo</span>
+    </button>
 
+    <!-- ===================== BARRA DE ETAPAS ===================== -->
+    <div class="stage-bar" id="stageBar" hidden>
+      <div class="stage-bar__step" id="stagePlanejar">
+        <span class="stage-bar__dot"></span>
+        <span class="stage-bar__label">Planejando</span>
+      </div>
+      <div class="stage-bar__line"></div>
+      <div class="stage-bar__step" id="stageCriar">
+        <span class="stage-bar__dot"></span>
+        <span class="stage-bar__label">Criando</span>
+      </div>
+    </div>
+    <ul class="plano-list" id="planoList" hidden></ul>
+
+    <p class="bench__status" id="status"></p>
+    <div class="bench__history">
+      <p class="history__label">Histórico</p>
+      <ul class="history__list" id="historyList"></ul>
+    </div>
+    <div class="bench__footer">Oficina v1.0</div>
+  </aside>
+  <!-- ===================== PALCO / PREVIEW ===================== -->
+  <main class="stage">
+    <div class="stage__bar">
+      <div class="stage__tabs">
+        <button class="tab is-active" data-view="preview">Prévia</button>
+        <button class="tab" data-view="code">Código</button>
+      </div>
+      <div class="stage__devices">
+        <button class="device is-active" data-width="100%" title="Desktop">Desktop</button>
+        <button class="device" data-width="768px" title="Tablet">Tablet</button>
+        <button class="device" data-width="375px" title="Celular">Celular</button>
+      </div>
+      <div class="stage__actions">
+        <button class="btn-ghost" id="btnCopiar" disabled>Copiar código</button>
+        <button class="btn-ghost" id="btnBaixar" disabled>Baixar .html</button>
+        <button class="btn-secondary" id="btnSalvar" disabled>Salvar na Oficina</button>
+      </div>
+    </div>
+    <div class="stage__viewport">
+      <div class="frame-wrap" id="frameWrap">
+        <iframe id="previewFrame" hidden></iframe>
+        <pre class="code-view" id="codeView" hidden><code id="codeViewText"></code></pre>
+      </div>
+      <div class="empty-state" id="emptyState">
+        <p><strong>Nenhum aplicativo gerado ainda</strong></p>
+        <p class="empty-state__sub">Descreva o que você quer criar na bancada ao lado e clique em "Gerar aplicativo".</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===================== JANELA DE LOGIN / CADASTRO ===================== -->
+<div class="modal-overlay" id="authModalOverlay" hidden>
+  <div class="auth-modal" id="authModal">
+    <button class="auth-modal__close" id="closeAuthModal">×</button>
+    <div class="auth-tabs">
+      <button class="auth-tab is-active" id="authTabLogin">Entrar</button>
+      <button class="auth-tab" id="authTabSignup">Criar conta</button>
+    </div>
+    <form id="formLogin">
+      <div class="auth-field"><input type="email" id="loginEmail" placeholder="Email" required></div>
+      <div class="auth-field"><input type="password" id="loginPassword" placeholder="Senha" required></div>
+      <p class="auth-error" id="loginError"></p>
+      <button class="btn-primary auth-submit" type="submit">Entrar</button>
+    </form>
+    <form id="formSignup" hidden>
+      <div class="auth-field"><input type="text" id="signupName" placeholder="Seu nome"></div>
+      <div class="auth-field"><input type="email" id="signupEmail" placeholder="Email" required></div>
+      <div class="auth-field"><input type="password" id="signupPassword" placeholder="Crie uma senha" required></div>
+      <p class="auth-error" id="signupError"></p>
+      <button class="btn-primary auth-submit" type="submit">Criar conta grátis</button>
+    </form>
+  </div>
 </div>
 
 <script src="script.js"></script>
+<script src="conta.js"></script>
 </body>
 </html>
