@@ -461,3 +461,112 @@ body{
   width:100%;
   margin-top:6px;
 }
+
+/* ===================== POLIMENTO PREMIUM 2026 ===================== */
+
+/* Textura sutil no fundo geral, dá profundidade sem pesar */
+body{
+  background:
+    radial-gradient(circle at 20% -10%, rgba(212,162,76,0.06), transparent 40%),
+    var(--ink);
+}
+
+/* Marca com leve brilho dourado atrás do ícone, como um "selo" */
+.brand__mark{
+  position:relative;
+  box-shadow:0 0 0 1px var(--line), 0 4px 14px rgba(212,162,76,0.08);
+  transition:box-shadow .3s ease;
+}
+.bench__brand:hover .brand__mark{
+  box-shadow:0 0 0 1px var(--brass-soft), 0 4px 18px rgba(212,162,76,0.18);
+}
+
+/* Botão principal com brilho pulsante sutil, chama atenção sem ser irritante */
+.btn-primary{
+  box-shadow:0 2px 12px rgba(212,162,76,0.15), inset 0 1px 0 rgba(255,255,255,0.15);
+  transition:filter .15s, transform .1s, box-shadow .25s ease;
+}
+.btn-primary:hover{
+  box-shadow:0 4px 20px rgba(212,162,76,0.32), inset 0 1px 0 rgba(255,255,255,0.2);
+  transform:translateY(-1px);
+}
+.btn-primary:active{
+  transform:translateY(0) scale(0.99);
+  box-shadow:0 1px 6px rgba(212,162,76,0.2);
+}
+
+/* Chips de exemplo com leve elevação ao passar o mouse */
+.chip{
+  transition:border-color .15s,color .15s,transform .15s,background .15s;
+}
+.chip:hover{
+  border-color:var(--brass-soft);
+  color:var(--text);
+  transform:translateY(-1px);
+  background:rgba(212,162,76,0.06);
+}
+
+/* Textarea com foco mais expressivo (anel de luz suave) */
+#prompt:focus{
+  outline:none;
+  border-color:var(--brass);
+  box-shadow:0 0 0 3px rgba(212,162,76,0.12);
+}
+
+/* Itens de histórico entrando com fade suave */
+@keyframes fadeSlideIn{
+  from{opacity:0; transform:translateY(4px);}
+  to{opacity:1; transform:translateY(0);}
+}
+.history__list li{
+  animation:fadeSlideIn .25s ease both;
+}
+
+/* Estado vazio com ícone de "oficina" ao invés de texto puro */
+.empty-state::before{
+  content:"⚒";
+  display:block;
+  font-size:34px;
+  color:var(--brass-soft);
+  margin-bottom:10px;
+  opacity:0.6;
+}
+
+/* Frame de preview com sombra mais profunda, parece "flutuar" */
+.frame-wrap{
+  box-shadow:0 0 0 1px var(--line), 0 16px 40px rgba(0,0,0,0.35);
+  transition:box-shadow .3s ease;
+}
+
+/* Abas (Prévia/Código) com transição suave de estado */
+.tab{
+  transition:background .2s ease, color .2s ease, border-color .2s ease;
+}
+
+/* Dispositivo selecionado com leve glow */
+.device.is-active{
+  box-shadow:0 0 0 1px var(--brass), 0 0 12px rgba(212,162,76,0.2);
+}
+
+/* Botão de conta (Entrar) com o mesmo tratamento premium do botão secundário */
+#accountArea .btn-secondary{
+  transition:border-color .15s ease, box-shadow .25s ease, transform .1s ease;
+}
+#accountArea .btn-secondary:hover{
+  box-shadow:0 0 14px rgba(212,162,76,0.2);
+  transform:translateY(-1px);
+}
+
+/* Janela de login com entrada suave e sombra profunda */
+@keyframes modalIn{
+  from{opacity:0; transform:scale(0.96) translateY(6px);}
+  to{opacity:1; transform:scale(1) translateY(0);}
+}
+.auth-modal{
+  animation:modalIn .2s ease both;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px var(--line);
+}
+.modal-overlay{
+  animation:fadeSlideIn .15s ease both;
+  backdrop-filter:blur(2px);
+}
